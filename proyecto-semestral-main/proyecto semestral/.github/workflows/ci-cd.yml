@@ -1,0 +1,100 @@
+name: CI/CD - Terraform, Build, Push, Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          # Set these values in GitHub repository secrets:
+          # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      - name: Get terraform outputs
+        working-directory: ./terraform
+        run: |
+          terraform output -json > tfoutputs.json
+          cat tfoutputs.json
+
+      - name: Parse outputs
+        id: parse
+        run: |
+          ECR_BACKEND_VENTAS=$(jq -r '.ecr_backend_ventas.value' terraform/tfoutputs.json)
+          ECR_BACKEND_DESPACHO=$(jq -r '.ecr_backend_despacho.value' terraform/tfoutputs.json)
+          ECR_FRONTEND=$(jq -r '.ecr_frontend.value' terraform/tfoutputs.json)
+          EC2_IP=$(jq -r '.ec2_public_ip.value' terraform/tfoutputs.json)
+          echo "ECR_BACKEND_VENTAS=$ECR_BACKEND_VENTAS" >> $GITHUB_OUTPUT
+          echo "ECR_BACKEND_DESPACHO=$ECR_BACKEND_DESPACHO" >> $GITHUB_OUTPUT
+          echo "ECR_FRONTEND=$ECR_FRONTEND" >> $GITHUB_OUTPUT
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
+
+
+      - name: Build and push backend ventas
+        run: |
+          ECR_URI=${{ steps.parse.outputs.ECR_BACKEND_VENTAS }}
+          REGISTRY=$(echo $ECR_URI | cut -d'/' -f1)
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
+          docker build -t $ECR_URI:latest back-Ventas_SpringBoot/Springboot-API-REST
+          docker push $ECR_URI:latest
+
+      - name: Build and push backend despacho
+        run: |
+          ECR_URI=${{ steps.parse.outputs.ECR_BACKEND_DESPACHO }}
+          REGISTRY=$(echo $ECR_URI | cut -d'/' -f1)
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
+          docker build -t $ECR_URI:latest back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
+          docker push $ECR_URI:latest
+
+      - name: Build and push frontend
+        run: |
+          ECR_URI=${{ steps.parse.outputs.ECR_FRONTEND }}
+          REGISTRY=$(echo $ECR_URI | cut -d'/' -f1)
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
+          docker build -t $ECR_URI:latest front_despacho
+          docker push $ECR_URI:latest
+
+      - name: Retrieve SSH private key
+        working-directory: ./terraform
+        run: |
+          terraform output -raw ssh_private_key_pem > deploy_key.pem
+          chmod 600 deploy_key.pem
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to EC2
+        env:
+          EC2_IP: ${{ steps.parse.outputs.EC2_IP }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ECR_BACKEND_VENTAS: ${{ steps.parse.outputs.ECR_BACKEND_VENTAS }}
+          ECR_BACKEND_DESPACHO: ${{ steps.parse.outputs.ECR_BACKEND_DESPACHO }}
+          ECR_FRONTEND: ${{ steps.parse.outputs.ECR_FRONTEND }}
+        run: |
+          chmod 600 terraform/deploy_key.pem
+          export DEPLOY_KEY=terraform/deploy_key.pem
+          export EC2_IP=${EC2_IP}
+          export AWS_REGION=${AWS_REGION}
+          export ECR_BACKEND_VENTAS=${ECR_BACKEND_VENTAS}
+          export ECR_BACKEND_DESPACHO=${ECR_BACKEND_DESPACHO}
+          export ECR_FRONTEND=${ECR_FRONTEND}
+          bash deploy/deploy_ec2.sh

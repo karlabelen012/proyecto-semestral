@@ -1,0 +1,55 @@
+services:
+
+  mysql:
+    image: mysql:8
+    container_name: mysql_despacho
+
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: despacho_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+
+    ports:
+      - "3308:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - app_network
+
+  backend-despacho:
+    build: .
+    container_name: backend_despacho
+
+    restart: always
+
+    ports:
+      - "8081:8081"
+
+    depends_on:
+      - mysql
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/despacho_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+
+    networks:
+      - app_network
+
+volumes:
+  mysql_data:
+
+networks:
+  app_network:
