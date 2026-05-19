@@ -1,0 +1,4 @@
+com\citt\config\OpenApiConfig.class
+com\citt\config\CorsConfig.class
+com\citt\config\CorsConfig$1.class
+com\citt\SpringbootApiRestDespachoApplication.class
