@@ -157,8 +157,7 @@ El `docker-compose.yml` en la raíz define una **red** compartida `app_network` 
 
 ---
 
-## Notas / troubleshooting
-
+## Notas 
 - Si hay puertos ocupados, ajusta `docker-compose.yml`.
 - Si necesitas reiniciar las BD desde cero:
 
@@ -206,7 +205,7 @@ proyecto semestral/terraform/
   README.md (si existe)
 ```
 
-### Diagrama de arquitectura (alto nivel)
+### Diagrama de arquitectura 
 ```mermaid
 graph TD
   GitHubActions[GitHub Actions] --> Terraform[Terraform: terraform/main.tf]
@@ -217,7 +216,6 @@ graph TD
   EC2 --> Docker[Docker + docker-compose en EC2]
   Docker --> ECRImage[Imágenes desde ECR]
 ```
-
 ### Cómo inicializar y ejecutar Terraform (local)
 Desde la carpeta `proyecto semestral/`:
 
