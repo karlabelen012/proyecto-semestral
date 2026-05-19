@@ -66,7 +66,7 @@ proyecto semestral/
 ### Para ejecutar en local
 - **Docker** y **Docker Compose**
 
-*(Opcional para desarrollo local sin Docker: Node.js y JDK/Maven).*
+
 
 ### Para ejecutar el pipeline (AWS)
 - Secrets en GitHub:
@@ -139,26 +139,7 @@ Operaciones (CRUD):
 3. Cada backend aplica lógica (controller → service → repository) y persiste datos en su **MySQL dedicado**.
 4. La respuesta regresa al frontend para actualizar la interfaz.
 
----
 
-## Flujo del sistema
-
-```mermaid
-flowchart LR
-  U[Usuario] --> F[Frontend React (3000)]
-  F -->|REST /api/v1/ventas| BV[Backend Ventas (8082)]
-  F -->|REST /api/v1/despachos| BD[Backend Despachos (8081)]
-
-  BV --> MV[(MySQL Ventas: ventas_db)]
-  BD --> MD[(MySQL Despachos: despacho_db)]
-
-  MV --> BV
-  MD --> BD
-  BV --> F
-  BD --> F
-```
-
----
 
 ## Docker (cómo está armado)
 
