@@ -275,5 +275,12 @@ En cada backend:
 - Asegura que el workflow construye/publica la nueva imagen
 - Ajusta la plantilla `docker-compose` usada en EC2
 
+---
+
+### Diagrama de Arquitectura AWS
+
+<img src="https://github.com/user-attachments/assets/2ae0795c-15b2-4bf4-9293-aa6d97f448cb" width="1024" alt="Diagrama de Arquitectura AWS Multi-VPC" />
+
+
 
 
