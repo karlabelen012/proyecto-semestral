@@ -1,0 +1,55 @@
+services:
+
+  mysql-ventas:
+    image: mysql:8
+    container_name: mysql_ventas
+
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ventas_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_ventas_data:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - ventas_network
+
+  backend-ventas:
+    build: .
+    container_name: backend_ventas
+
+    restart: always
+
+    ports:
+      - "8082:8082"
+
+    depends_on:
+      - mysql-ventas
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-ventas:3306/ventas_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+
+    networks:
+      - ventas_network
+
+volumes:
+  mysql_ventas_data:
+
+networks:
+  ventas_network:

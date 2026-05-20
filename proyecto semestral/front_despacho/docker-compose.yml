@@ -1,0 +1,16 @@
+services:
+
+  frontend:
+    build: .
+    container_name: front_despacho
+
+    restart: always
+
+    ports:
+      - "3000:80"
+
+    networks:
+      - front_network
+
+networks:
+  front_network:
